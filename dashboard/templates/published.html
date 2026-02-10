@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Published Posts - SDCP Social{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">Published Posts</h4>
+</div>
+
+{% if not posts %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <p class="text-muted mb-0">No published posts yet</p>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    {% for post in posts %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card post-card h-100">
+            {% if post.photos %}
+            <img src="{{ settings.base_url }}/uploads/{{ post.photos[0].storage_path }}"
+                 class="card-img-top" alt="Post thumbnail"
+                 style="height: 200px; object-fit: cover;">
+            {% endif %}
+            <div class="card-body">
+                <h6 class="card-title">
+                    {{ post.project_type or 'Painting Project' }}
+                    {% if post.project_location %}
+                    <small class="text-muted">in {{ post.project_location }}</small>
+                    {% endif %}
+                </h6>
+                <p class="caption-preview">
+                    {{ post.instagram_caption or 'No caption' }}
+                </p>
+                <small class="text-muted">
+                    Published {{ format_datetime(post.published_at) }}
+                </small>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <div class="d-flex gap-2">
+                    {% if post.instagram_post_id %}
+                    <a href="https://instagram.com/p/{{ post.instagram_post_id }}"
+                       target="_blank" class="btn btn-sm btn-outline-secondary">
+                        View on Instagram
+                    </a>
+                    {% endif %}
+                    {% if post.facebook_post_id %}
+                    <a href="https://facebook.com/{{ post.facebook_post_id }}"
+                       target="_blank" class="btn btn-sm btn-outline-secondary">
+                        View on Facebook
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

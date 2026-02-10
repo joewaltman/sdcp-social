@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Post Queue - SDCP Social{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 mb-4">
+        <div class="sidebar p-3">
+            <h6 class="text-muted px-3 mb-3">FILTER BY STATUS</h6>
+            <nav class="nav flex-column">
+                <a class="nav-link {% if not current_status %}active{% endif %}" href="/">
+                    All Posts
+                    <span class="count-badge">{{ posts|length }}</span>
+                </a>
+                <a class="nav-link {% if current_status == 'pending_approval' %}active{% endif %}" href="/?status=pending_approval">
+                    Pending Approval
+                    <span class="count-badge">{{ status_counts.get('pending_approval', 0) }}</span>
+                </a>
+                <a class="nav-link {% if current_status == 'scheduled' %}active{% endif %}" href="/?status=scheduled">
+                    Scheduled
+                    <span class="count-badge">{{ status_counts.get('scheduled', 0) }}</span>
+                </a>
+                <a class="nav-link {% if current_status == 'draft' %}active{% endif %}" href="/?status=draft">
+                    Drafts
+                    <span class="count-badge">{{ status_counts.get('draft', 0) }}</span>
+                </a>
+                <a class="nav-link {% if current_status == 'rejected' %}active{% endif %}" href="/?status=rejected">
+                    Rejected
+                    <span class="count-badge">{{ status_counts.get('rejected', 0) }}</span>
+                </a>
+                <a class="nav-link {% if current_status == 'failed' %}active{% endif %}" href="/?status=failed">
+                    Failed
+                    <span class="count-badge">{{ status_counts.get('failed', 0) }}</span>
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0">
+                {% if current_status %}
+                    {{ current_status.replace('_', ' ').title() }} Posts
+                {% else %}
+                    All Posts
+                {% endif %}
+            </h4>
+        </div>
+
+        {% if not posts %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <p class="text-muted mb-0">No posts found</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="row">
+            {% for post in posts %}
+            <div class="col-12 mb-3">
+                <a href="/post/{{ post.id }}" class="text-decoration-none">
+                    <div class="card post-card">
+                        <div class="card-body d-flex align-items-center">
+                            {% if post.photos %}
+                            <img src="{{ settings.base_url }}/uploads/{{ post.photos[0].storage_path }}"
+                                 class="post-thumbnail me-3" alt="Post thumbnail">
+                            {% else %}
+                            <div class="post-thumbnail me-3 bg-light d-flex align-items-center justify-content-center">
+                                <span class="text-muted">No image</span>
+                            </div>
+                            {% endif %}
+
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1 text-dark">
+                                            {{ post.project_type or 'Painting Project' }}
+                                            {% if post.project_location %}
+                                            <span class="text-muted">in {{ post.project_location }}</span>
+                                            {% endif %}
+                                        </h6>
+                                        <p class="caption-preview mb-1">
+                                            {{ post.instagram_caption or 'No caption yet' }}
+                                        </p>
+                                        <small class="text-muted">
+                                            {{ post.photo_count }} photo{% if post.photo_count != 1 %}s{% endif %}
+                                            &bull; {{ format_datetime(post.created_at) }}
+                                            {% if post.scheduled_at and post.status.value == 'scheduled' %}
+                                            &bull; Scheduled: {{ format_datetime(post.scheduled_at) }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    {% set badge_class, badge_text = status_badge(post.status) %}
+                                    <span class="badge {{ badge_class }} status-badge">{{ badge_text }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

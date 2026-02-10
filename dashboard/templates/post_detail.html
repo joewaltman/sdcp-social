@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Post #{{ post.id }} - SDCP Social{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Photos ({{ post.photo_count }})</span>
+                {% set badge_class, badge_text = status_badge(post.status) %}
+                <span class="badge {{ badge_class }} status-badge">{{ badge_text }}</span>
+            </div>
+            <div class="card-body">
+                <div class="photo-grid">
+                    {% for photo in post.photos %}
+                    <div>
+                        <img src="{{ settings.base_url }}/uploads/{{ photo.storage_path }}"
+                             alt="{{ photo.filename }}"
+                             class="img-fluid">
+                        {% if photo.ai_description %}
+                        <small class="text-muted d-block mt-2">{{ photo.ai_description }}</small>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <form method="post" action="/post/{{ post.id }}">
+            <div class="card mb-4">
+                <div class="card-header">Instagram Caption</div>
+                <div class="card-body">
+                    <textarea name="instagram_caption" class="form-control"
+                              placeholder="Instagram caption...">{{ post.instagram_caption or '' }}</textarea>
+                    <small class="text-muted">Keep under 150 words. No hashtags here.</small>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">Facebook Caption</div>
+                <div class="card-body">
+                    <textarea name="facebook_caption" class="form-control"
+                              placeholder="Facebook caption...">{{ post.facebook_caption or '' }}</textarea>
+                    <small class="text-muted">Can be slightly longer. No hashtags here.</small>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">Hashtags</div>
+                <div class="card-body">
+                    <textarea name="hashtags" class="form-control" rows="3"
+                              placeholder="#SanDiegoCustomPainting #InteriorPainting...">{{ post.hashtags|join(' ') if post.hashtags else '' }}</textarea>
+                    <small class="text-muted">Separate with spaces. Will be added to Instagram posts.</small>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mb-4">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+
+                {% if post.status.value in ['pending_approval', 'draft'] %}
+                <button type="submit" formaction="/post/{{ post.id }}/approve"
+                        class="btn btn-success">Approve & Schedule</button>
+                <button type="submit" formaction="/post/{{ post.id }}/reject"
+                        class="btn btn-outline-danger">Reject</button>
+                {% endif %}
+
+                <button type="submit" formaction="/post/{{ post.id }}/regenerate"
+                        class="btn btn-outline-secondary">Regenerate AI Content</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">Details</div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt>Project Type</dt>
+                    <dd>{{ post.project_type or 'Not specified' }}</dd>
+
+                    <dt>Location</dt>
+                    <dd>{{ post.project_location or 'Not specified' }}</dd>
+
+                    <dt>Source</dt>
+                    <dd>{{ post.source_email }}</dd>
+
+                    <dt>Created</dt>
+                    <dd>{{ format_datetime(post.created_at) }}</dd>
+
+                    {% if post.scheduled_at %}
+                    <dt>Scheduled</dt>
+                    <dd>{{ format_datetime(post.scheduled_at) }}</dd>
+                    {% endif %}
+
+                    {% if post.published_at %}
+                    <dt>Published</dt>
+                    <dd>{{ format_datetime(post.published_at) }}</dd>
+                    {% endif %}
+
+                    {% if post.instagram_post_id %}
+                    <dt>Instagram Post ID</dt>
+                    <dd><code>{{ post.instagram_post_id }}</code></dd>
+                    {% endif %}
+
+                    {% if post.facebook_post_id %}
+                    <dt>Facebook Post ID</dt>
+                    <dd><code>{{ post.facebook_post_id }}</code></dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        {% if post.additional_context %}
+        <div class="card mb-4">
+            <div class="card-header">Original Context</div>
+            <div class="card-body">
+                <p class="mb-0 text-muted">{{ post.additional_context }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if post.last_error %}
+        <div class="card mb-4 border-danger">
+            <div class="card-header bg-danger text-white">Error</div>
+            <div class="card-body">
+                <pre class="mb-0 text-danger" style="white-space: pre-wrap;">{{ post.last_error }}</pre>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<a href="/" class="btn btn-outline-secondary mb-4">&larr; Back to Queue</a>
+{% endblock %}

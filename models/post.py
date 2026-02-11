@@ -49,7 +49,9 @@ class Post(Base):
 
     # Status workflow
     status: Mapped[PostStatus] = mapped_column(
-        Enum(PostStatus), default=PostStatus.DRAFT, nullable=False
+        Enum(PostStatus, values_callable=lambda x: [e.value for e in x]),
+        default=PostStatus.DRAFT,
+        nullable=False,
     )
 
     # Scheduling

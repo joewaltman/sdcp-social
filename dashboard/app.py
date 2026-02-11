@@ -10,13 +10,7 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from config import get_settings
-from dashboard.auth import (
-    clear_session_cookie,
-    get_current_user,
-    require_auth,
-    set_session_cookie,
-    verify_password,
-)
+from dashboard.auth import clear_session_cookie, require_auth
 from models import Post, PostStatus, get_db
 
 router = APIRouter(tags=["dashboard"])
@@ -57,33 +51,14 @@ templates.env.globals["PostStatus"] = PostStatus
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    """Show login page."""
-    user = get_current_user(request)
-    if user:
-        return RedirectResponse(url="/", status_code=303)
-
-    return templates.TemplateResponse(
-        "login.html",
-        {"request": request, "error": None},
-    )
+    """Redirect to dashboard - auth disabled."""
+    return RedirectResponse(url="/", status_code=303)
 
 
 @router.post("/login")
-async def login(
-    request: Request,
-    password: str = Form(...),
-):
-    """Handle login form submission."""
-    if verify_password(password):
-        response = RedirectResponse(url="/", status_code=303)
-        set_session_cookie(response)
-        return response
-
-    return templates.TemplateResponse(
-        "login.html",
-        {"request": request, "error": "Invalid password"},
-        status_code=401,
-    )
+async def login(request: Request):
+    """Redirect to dashboard - auth disabled."""
+    return RedirectResponse(url="/", status_code=303)
 
 
 @router.get("/logout")

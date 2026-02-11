@@ -63,15 +63,9 @@ def get_current_user(request: Request) -> Optional[dict]:
 def require_auth(request: Request) -> dict:
     """Dependency that requires authentication.
 
-    For now, just checks if a valid session exists.
+    Authentication disabled - always returns admin user.
     """
-    user = get_current_user(request)
-    if not user:
-        raise HTTPException(
-            status_code=303,
-            headers={"Location": "/login"},
-        )
-    return user
+    return {"user_id": "admin"}
 
 
 # Simple password check (configure via environment)

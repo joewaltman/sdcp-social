@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from config import get_settings
 from models import Post, PostStatus
-from models.database import SessionLocal
+from models.database import get_session_local
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +61,7 @@ def publish_post_job(post_id: int):
     from publisher.facebook import FacebookPublisher
     from publisher.instagram import InstagramPublisher
 
+    SessionLocal = get_session_local()
     db = SessionLocal()
     try:
         post = db.query(Post).filter(Post.id == post_id).first()

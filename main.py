@@ -57,17 +57,11 @@ app.include_router(approval_router)
 app.include_router(dashboard_router)
 
 
-# Mount static files for uploaded photos
-@app.on_event("startup")
-async def mount_uploads():
-    """Mount uploads directory as static files."""
-    settings = get_settings()
-    uploads_path = settings.photo_storage_path
-    uploads_path.mkdir(parents=True, exist_ok=True)
-    app.mount("/uploads", StaticFiles(directory=str(uploads_path)), name="uploads")
+# Mount static files at module level
+settings = get_settings()
+settings.photo_storage_path.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(settings.photo_storage_path)), name="uploads")
 
-
-# Mount dashboard static files if they exist
 dashboard_static = Path(__file__).parent / "dashboard" / "static"
 if dashboard_static.exists():
     app.mount("/static", StaticFiles(directory=str(dashboard_static)), name="static")

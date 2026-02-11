@@ -2,7 +2,6 @@
 name = "sdcp-social"
 version = "0.1.0"
 description = "SDCP Social Media Post Generator - AI-powered social media automation"
-readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.109.0",

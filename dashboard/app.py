@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import desc
@@ -297,3 +297,144 @@ async def published_posts(
             "settings": settings,
         },
     )
+
+
+@router.get("/upload", response_class=HTMLResponse)
+async def upload_page(
+    request: Request,
+    user: dict = Depends(require_auth),
+):
+    """Show photo upload form."""
+    return templates.TemplateResponse(
+        "upload.html",
+        {"request": request},
+    )
+
+
+@router.post("/upload")
+async def upload_photos(
+    request: Request,
+    photos: list[UploadFile] = File(...),
+    project_location: str = Form(""),
+    project_type: str = Form(""),
+    additional_context: str = Form(""),
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth),
+):
+    """Handle photo upload and trigger AI generation."""
+    import base64
+    import uuid
+    from pathlib import Path
+
+    from PIL import Image
+
+    from generator.post_generator import PostGenerator
+    from models.photo import Photo
+
+    settings = get_settings()
+
+    if not photos or len(photos) == 0:
+        raise HTTPException(status_code=400, detail="No photos uploaded")
+
+    if len(photos) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 photos allowed")
+
+    # Create post record
+    post = Post(
+        source_email="dashboard@upload",
+        project_location=project_location or None,
+        project_type=project_type or None,
+        additional_context=additional_context or None,
+        status=PostStatus.DRAFT,
+    )
+    db.add(post)
+    db.flush()
+
+    # Process each photo
+    image_data_for_ai = []
+    from datetime import datetime as dt
+
+    date_prefix = dt.now().strftime("%Y/%m/%d")
+    upload_dir = settings.photo_storage_path / date_prefix
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    for i, photo_file in enumerate(photos):
+        # Validate content type
+        content_type = photo_file.content_type or "image/jpeg"
+        if content_type not in ("image/jpeg", "image/png", "image/webp"):
+            continue
+
+        # Read file
+        content = await photo_file.read()
+        if len(content) < 10 * 1024:  # Skip tiny files
+            continue
+
+        # Get dimensions
+        from io import BytesIO
+        try:
+            img = Image.open(BytesIO(content))
+            width, height = img.size
+        except Exception:
+            continue
+
+        # Generate filename and save
+        ext = ".jpg" if content_type == "image/jpeg" else ".png" if content_type == "image/png" else ".webp"
+        filename = f"{uuid.uuid4().hex[:12]}{ext}"
+        storage_path = f"{date_prefix}/{filename}"
+        full_path = settings.photo_storage_path / storage_path
+
+        with open(full_path, "wb") as f:
+            f.write(content)
+
+        # Create photo record
+        photo = Photo(
+            post_id=post.id,
+            filename=photo_file.filename or filename,
+            storage_path=storage_path,
+            content_type=content_type,
+            file_size=len(content),
+            width=width,
+            height=height,
+            display_order=i,
+            is_primary=(i == 0),
+        )
+        db.add(photo)
+
+        # Prepare for AI
+        image_data_for_ai.append((base64.b64encode(content).decode(), content_type))
+
+    db.commit()
+
+    if not image_data_for_ai:
+        db.delete(post)
+        db.commit()
+        raise HTTPException(status_code=400, detail="No valid photos uploaded")
+
+    # Generate AI content
+    try:
+        generator = PostGenerator()
+        generated = generator.generate_post(
+            project_location=project_location or None,
+            project_type=project_type or None,
+            additional_context=additional_context or None,
+            image_data=image_data_for_ai,
+        )
+
+        post.instagram_caption = generated.instagram_caption
+        post.facebook_caption = generated.facebook_caption
+        post.hashtags = generated.hashtags
+        post.status = PostStatus.PENDING_APPROVAL
+
+        # Store AI descriptions
+        for i, photo in enumerate(post.photos):
+            if i < len(generated.photo_descriptions):
+                photo.ai_description = generated.photo_descriptions[i]
+
+        db.commit()
+
+    except Exception as e:
+        post.last_error = str(e)
+        post.status = PostStatus.DRAFT
+        db.commit()
+
+    return RedirectResponse(url=f"/post/{post.id}", status_code=303)

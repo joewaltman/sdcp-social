@@ -29,9 +29,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     claude_model: str = "claude-sonnet-4-20250514"
 
-    # Postmark
-    postmark_server_token: str = ""
-    postmark_inbound_address: str = "posts@inbound.postmarkapp.com"
+    # Resend (email service)
+    resend_api_key: str = ""
+    from_email: str = "noreply@sdcustompainting.com"
 
     # Meta / Facebook / Instagram
     meta_access_token: str = ""

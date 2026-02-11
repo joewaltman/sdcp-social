@@ -1,9 +1,9 @@
-"""Send approval emails via Postmark."""
+"""Send approval emails via Resend."""
 
 import logging
 from typing import Optional
 
-from postmarker.core import PostmarkClient
+import resend
 from sqlalchemy.orm import Session
 
 from approval.tokens import TokenManager
@@ -154,7 +154,6 @@ def _build_approval_email_html(
 
             <div class="meta">
                 <p><strong>Project:</strong> {post.project_type or 'Not specified'} in {post.project_location or 'San Diego'}</p>
-                <p><strong>From:</strong> {post.source_email}</p>
                 <p><strong>Photos:</strong> {post.photo_count}</p>
                 <p>This link expires in {settings.approval_token_expiry_hours} hours.</p>
             </div>
@@ -164,60 +163,6 @@ def _build_approval_email_html(
     '''
 
     return html
-
-
-def _build_approval_email_text(
-    post: Post,
-    tokens: dict[str, str],
-    token_manager: TokenManager,
-) -> str:
-    """Build plain text version of approval email."""
-    settings = get_settings()
-
-    approve_url = token_manager.get_action_url("approve", tokens["approve"])
-    edit_url = token_manager.get_action_url("edit", tokens["edit"])
-    reject_url = token_manager.get_action_url("reject", tokens["reject"])
-
-    hashtags_str = " ".join(post.hashtags) if post.hashtags else ""
-
-    text = f'''
-NEW POST READY FOR REVIEW
-
-Project: {post.project_type or 'Not specified'} in {post.project_location or 'San Diego'}
-From: {post.source_email}
-Photos: {post.photo_count}
-
----
-
-INSTAGRAM CAPTION:
-{post.instagram_caption or 'No caption generated'}
-
----
-
-FACEBOOK CAPTION:
-{post.facebook_caption or 'No caption generated'}
-
----
-
-HASHTAGS:
-{hashtags_str}
-
----
-
-ACTIONS:
-
-Approve & Schedule: {approve_url}
-
-Edit Post: {edit_url}
-
-Reject: {reject_url}
-
----
-
-This link expires in {settings.approval_token_expiry_hours} hours.
-'''
-
-    return text
 
 
 async def send_approval_email(
@@ -230,9 +175,12 @@ async def send_approval_email(
     """
     settings = get_settings()
 
-    if not settings.postmark_server_token:
-        logger.warning("Postmark token not configured, skipping approval email")
+    if not settings.resend_api_key:
+        logger.warning("Resend API key not configured, skipping approval email")
         return False
+
+    # Initialize Resend
+    resend.api_key = settings.resend_api_key
 
     # Get the post
     post = db.query(Post).filter(Post.id == post_id).first()
@@ -246,26 +194,21 @@ async def send_approval_email(
 
     # Build email content
     html_body = _build_approval_email_html(post, tokens, token_manager)
-    text_body = _build_approval_email_text(post, tokens, token_manager)
 
-    # Send via Postmark
+    # Build subject
+    location_str = post.project_location or "San Diego"
+    subject = f"New Post Ready: {post.project_type or 'Painting Project'} in {location_str}"
+
+    # Send via Resend
     try:
-        client = PostmarkClient(server_token=settings.postmark_server_token)
-
-        location_str = post.project_location or "San Diego"
-        subject = f"New Post Ready: {post.project_type or 'Painting Project'} in {location_str}"
-
         for recipient in settings.approval_recipients_list:
-            client.emails.send(
-                From="noreply@sdcustompainting.com",
-                To=recipient,
-                Subject=subject,
-                HtmlBody=html_body,
-                TextBody=text_body,
-                Tag="approval",
-                TrackOpens=True,
-            )
-            logger.info(f"Sent approval email to {recipient} for post {post_id}")
+            response = resend.Emails.send({
+                "from": settings.from_email,
+                "to": recipient,
+                "subject": subject,
+                "html": html_body,
+            })
+            logger.info(f"Sent approval email to {recipient} for post {post_id}: {response}")
 
         return True
 

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}New Post - SDCP Social{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Create New Post</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/upload" enctype="multipart/form-data">
+                    <div class="mb-4">
+                        <label for="photos" class="form-label">Project Photos *</label>
+                        <input type="file" class="form-control" id="photos" name="photos"
+                               accept="image/jpeg,image/png,image/webp" multiple required>
+                        <small class="text-muted">Select 1-10 photos. JPG, PNG, or WebP format.</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="project_location" class="form-label">Project Location</label>
+                            <select class="form-select" id="project_location" name="project_location">
+                                <option value="">Select location...</option>
+                                <option value="La Jolla">La Jolla</option>
+                                <option value="Del Mar">Del Mar</option>
+                                <option value="Encinitas">Encinitas</option>
+                                <option value="Rancho Santa Fe">Rancho Santa Fe</option>
+                                <option value="Carlsbad">Carlsbad</option>
+                                <option value="Coronado">Coronado</option>
+                                <option value="Point Loma">Point Loma</option>
+                                <option value="Pacific Beach">Pacific Beach</option>
+                                <option value="Mission Hills">Mission Hills</option>
+                                <option value="San Diego">San Diego (Other)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="project_type" class="form-label">Project Type</label>
+                            <select class="form-select" id="project_type" name="project_type">
+                                <option value="">Select type...</option>
+                                <option value="interior painting">Interior Painting</option>
+                                <option value="exterior painting">Exterior Painting</option>
+                                <option value="cabinet refinishing">Cabinet Refinishing</option>
+                                <option value="deck staining">Deck Staining</option>
+                                <option value="trim painting">Trim & Doors</option>
+                                <option value="full home">Full Home (Interior + Exterior)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="additional_context" class="form-label">Additional Context</label>
+                        <textarea class="form-control" id="additional_context" name="additional_context"
+                                  rows="3" placeholder="Any details about the project... (optional)"></textarea>
+                        <small class="text-muted">E.g., "Before and after of kitchen cabinets" or "Exterior refresh, Sherwin Williams Alabaster"</small>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            Upload & Generate Captions
+                        </button>
+                        <a href="/" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Preview selected files
+document.getElementById('photos').addEventListener('change', function(e) {
+    const files = Array.from(e.target.files);
+    if (files.length > 10) {
+        alert('Maximum 10 photos allowed');
+        e.target.value = '';
+    }
+});
+</script>
+{% endblock %}

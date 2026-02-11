@@ -15,7 +15,7 @@
                 <div class="photo-grid">
                     {% for photo in post.photos %}
                     <div>
-                        <img src="{{ settings.base_url }}/uploads/{{ photo.storage_path }}"
+                        <img src="/uploads/{{ photo.storage_path }}"
                              alt="{{ photo.filename }}"
                              class="img-fluid">
                         {% if photo.ai_description %}

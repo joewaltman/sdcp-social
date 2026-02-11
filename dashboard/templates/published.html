@@ -19,7 +19,7 @@
     <div class="col-md-6 col-lg-4 mb-4">
         <div class="card post-card h-100">
             {% if post.photos %}
-            <img src="{{ settings.base_url }}/uploads/{{ post.photos[0].storage_path }}"
+            <img src="/uploads/{{ post.photos[0].storage_path }}"
                  class="card-img-top" alt="Post thumbnail"
                  style="height: 200px; object-fit: cover;">
             {% endif %}
